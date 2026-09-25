@@ -1,0 +1,18 @@
+{
+  "name": "ads-dashboard",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Paid ads dashboard for Google Ads, Meta Ads and LinkedIn Ads",
+  "scripts": {
+    "setup": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "dev": "concurrently -k -n api,web -c blue,green \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "seed": "npm run seed --prefix backend",
+    "clear-data": "npm run seed --prefix backend -- --clear",
+    "test": "npm test --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "start": "npm start --prefix backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

@@ -1,48 +1,39 @@
 @echo off
-REM Marketing Dashboard - Quick Start Script
+REM AdPulse - double-click to start the dashboard
+cd /d "%~dp0"
 
 echo ============================================
-echo Marketing Dashboard Launcher
+echo   AdPulse - Paid Ads Dashboard
 echo ============================================
 echo.
-echo Starting all services...
-echo.
 
-REM Check if .env exists
 if not exist .env (
-    echo ERROR: .env file not found!
-    echo Please copy .env.example to .env and fill in your values.
-    pause
-    exit /b 1
+    echo Creating .env from .env.example ...
+    copy .env.example .env >nul
+    echo Add your ad platform API keys to .env later - sample data works without them.
+    echo.
 )
 
-REM Start Backend
-echo [1/3] Starting Backend (Node/Express) on http://localhost:5000...
-start "Backend" cmd /k "cd backend && npm run dev"
+if not exist node_modules (
+    echo First run: installing dependencies, this takes a minute...
+    call npm run setup
+    if errorlevel 1 goto :failed
+)
 
-REM Wait a moment
-timeout /t 2 /nobreak
-
-REM Start Frontend
-echo [2/3] Starting Frontend (React) on http://localhost:3000...
-start "Frontend" cmd /k "cd frontend && npm start"
-
-REM Wait a moment
-timeout /t 2 /nobreak
-
-REM Start Agent Service
-echo [3/3] Starting Agent Service (Python/CrewAI) on http://localhost:5001...
-start "Agents" cmd /k "cd agents && python main.py"
+if not exist data\ads.db (
+    echo Loading sample data...
+    call npm run seed
+    if errorlevel 1 goto :failed
+)
 
 echo.
-echo ============================================
-echo All services starting...
-echo ============================================
+echo Opening http://localhost:5173 ...  (close this window to stop)
 echo.
-echo Backend:  http://localhost:5000
-echo Frontend: http://localhost:3000
-echo Agents:   http://localhost:5001
+start "" /b cmd /c "timeout /t 4 /nobreak >nul && start http://localhost:5173"
+call npm run dev
+goto :eof
+
+:failed
 echo.
-echo Close these windows to stop services.
-echo.
+echo Something went wrong above. Make sure Node.js 22.13 or newer is installed.
 pause

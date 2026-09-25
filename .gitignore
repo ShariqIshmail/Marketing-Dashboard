@@ -48,7 +48,11 @@ Thumbs.db
 
 # Frontend Build
 frontend/build/
+frontend/dist/
 frontend/.cache/
+
+# Local database
+data/
 
 # Logs
 logs/

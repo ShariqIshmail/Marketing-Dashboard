@@ -1,310 +1,103 @@
-# Marketing Dashboard with AI Agents
+# AdPulse – Paid Ads Dashboard
 
-A comprehensive marketing analytics dashboard powered by CrewAI agents that automatically surfaces industry trends, analyzes competitor moves, and optimizes ad spend across Google Ads and Meta platforms.
+One dashboard for your **Google Ads, Meta Ads and LinkedIn Ads** performance. Data is pulled from each platform's API on a schedule and stored in a local SQLite file, so no database server is needed.
 
-## Features
+- **Dashboard**: spend, clicks, conversions and ROAS cards with period-over-period changes, a spend / revenue / conversions chart split by platform, and a top-campaigns ranking
+- **Campaigns**: a sortable table of every campaign (spend, impressions, clicks, CTR, conversions, CPA, revenue, ROAS), filterable by platform, date range and search
+- **Integrations**: connection status per platform, last sync time, and a "Sync now" button
 
-✨ **AI-Powered Insights**
-- Daily industry news & trends via Claude AI web search
-- Automated competitor monitoring and alerts
-- Performance analysis with ROI/ROAS calculations
-- Slack integration for daily summaries
+## Quick start
 
-📊 **Analytics Dashboard**
-- Real-time ad spend & revenue tracking
-- ROI, ROAS, and budget utilization gauges
-- Multi-platform support (Google Ads, Meta, manual entry)
-- Visual analytics with line charts and circular progress indicators
+Requires **Node.js 22.13 or newer** (nothing else).
 
-🤖 **CrewAI Agent System**
-- News Researcher agent for daily trends
-- Competitor Analyst for competitive intelligence
-- Performance Analyzer for budget recommendations
-- Slack Reporter for automated summaries
+**Easiest:** double-click `START.bat`. It installs everything on first run, loads sample data, and opens the dashboard.
 
-## Prerequisites
+**Or from a terminal** in this folder:
 
-- **Node.js** 16+ (backend & frontend)
-- **Python** 3.10+ (CrewAI agents)
-- **PostgreSQL** 12+ (local database)
-- **ANTHROPIC_API_KEY** (Claude API access)
-- **Slack Webhook URL** (for Slack integration, optional)
-
-## Setup
-
-### 1. Clone / Create Project
-```bash
-cd "C:\Users\svr07\OneDrive\Desktop\Business\marketing-dashboard"
+```powershell
+npm run setup   # install dependencies (first time only)
+npm run seed    # load a year of sample campaigns (optional)
+npm run dev     # start everything
 ```
 
-### 2. Configure Environment
-```bash
-cp .env.example .env
-# Edit .env with your values:
-# - DB_PASSWORD (your Postgres password)
-# - ANTHROPIC_API_KEY (from console.anthropic.com)
-# - SLACK_WEBHOOK_URL (from your Slack workspace)
-```
+Then open **http://localhost:5173**. Stop it with `Ctrl+C`.
 
-### 3. Create PostgreSQL Database
-```bash
-psql -U postgres
-CREATE DATABASE marketing_dashboard;
-\q
-```
+## Connecting your ad accounts
 
-### 4. Install & Start Backend
-```bash
-cd backend
-npm install
-npm run init-db   # Initialize schema
-npm run dev       # Start on http://localhost:5000
-```
+1. Copy `.env.example` to `.env` (START.bat does this for you).
+2. Fill in the keys for the platforms you use (see below). Leave the others blank.
+3. Run `npm run clear-data` to remove the sample data.
+4. Restart, go to **Integrations**, and click **Sync now**. After that, data syncs automatically every 6 hours (`SYNC_SCHEDULE` in `.env`).
 
-### 5. Install & Start Frontend
-(In a new terminal)
-```bash
-cd frontend
-npm install
-npm start         # Start on http://localhost:3000
-```
+Each sync re-pulls the last 30 days, so conversions that are attributed late still get counted.
 
-### 6. Install & Start Agent Service
-(In a new terminal)
-```bash
-cd agents
-pip install -r requirements.txt
-python main.py    # Start on http://localhost:5001
-# Or trigger manually: python main.py --once
-```
+### Google Ads
+| Key | Where to get it |
+|---|---|
+| `GOOGLE_ADS_DEVELOPER_TOKEN` | Google Ads, then **Tools, then API Center**. Requires a manager (MCC) account, and **Basic access must be approved by Google**, which can take days. |
+| `GOOGLE_ADS_CLIENT_ID` / `CLIENT_SECRET` | Google Cloud Console, then **APIs & Services, then Credentials**, then create an OAuth client (Desktop app). Enable the Google Ads API. |
+| `GOOGLE_ADS_REFRESH_TOKEN` | Generate one with Google's OAuth Playground using your client ID/secret and the `https://www.googleapis.com/auth/adwords` scope. |
+| `GOOGLE_ADS_CUSTOMER_ID` | The account ID shown top-right in Google Ads (e.g. `123-456-7890`). |
+| `GOOGLE_ADS_LOGIN_CUSTOMER_ID` | Only if you reach the account through a manager account: the manager's ID. |
 
-### Quick Start Script
-Run `START.bat` to launch all three services in separate windows.
+### Meta Ads (Facebook / Instagram)
+| Key | Where to get it |
+|---|---|
+| `META_ACCESS_TOKEN` | Create an app at developers.facebook.com (type: Business). Then, in **Business Settings, then System users**, create a system user, assign the ad account, and generate a token with `ads_read`. |
+| `META_AD_ACCOUNT_ID` | Ads Manager, account dropdown (the number, with or without `act_`). |
 
-## API Endpoints
+Conversions and revenue use the purchase action by default. To count leads or another event instead, set `META_CONVERSION_ACTIONS`.
 
-### Backend (Node)
+### LinkedIn Ads
+| Key | Where to get it |
+|---|---|
+| `LINKEDIN_ACCESS_TOKEN` | Create an app at linkedin.com/developers and **request the Advertising API product**, which LinkedIn must approve. Then generate a token with `r_ads` and `r_ads_reporting`. Tokens last 60 days. |
+| `LINKEDIN_AD_ACCOUNT_ID` | Campaign Manager, the account number in the URL. |
 
-**Campaigns**
-- `GET /api/campaigns` — List all campaigns
-- `POST /api/campaigns` — Create campaign
-- `PUT /api/campaigns/:id` — Update campaign
-- `DELETE /api/campaigns/:id` — Delete campaign
+### API versions
+Each platform retires old API versions periodically. If a sync starts failing with a version error, update `GOOGLE_ADS_API_VERSION`, `META_API_VERSION` or `LINKEDIN_API_VERSION` in `.env`.
 
-**Metrics**
-- `GET /api/metrics` — Aggregated metrics (daily/weekly/monthly) with ROI/ROAS
-- `POST /api/metrics` — Add manual metric entry
-- `GET /api/metrics/summary` — Top-level KPIs
+## Commands
 
-**News & Trends**
-- `GET /api/news` — All news items (trends + competitors)
-- `GET /api/news?category=trend` — Industry trends only
-- `GET /api/news?category=competitor` — Competitor news only
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the API (port 5000) and dashboard (port 5173) |
+| `npm run seed` | Replace all data with sample data |
+| `npm run clear-data` | Delete all campaign and metric data |
+| `npm test` | Run the backend tests |
+| `npm run build` then `npm start` | Build the dashboard and serve everything from http://localhost:5000 |
 
-**Agent Control**
-- `POST /api/agent/run` — Trigger agent crew immediately
-- `GET /api/agent/runs` — Agent run history
-- `GET /api/agent/runs/:id` — Detailed run results
-
-**Slack**
-- `POST /api/slack/trigger` — Manually push summary to Slack
-
-### Agent Service (Python)
-
-- `POST /run-crew` — Trigger CrewAI crew, returns agent outputs
-- `GET /health` — Service health check
-
-## Dashboard Features
-
-### Summary Cards
-- **Total Ad Spend** — sum of all campaigns this period
-- **ROAS** — revenue ÷ spend, calculated from metrics
-- **ROI %** — (revenue − spend) ÷ spend × 100
-- **Active Campaigns** — count of non-paused campaigns
-
-### Charts
-- **Spend vs Revenue** — line chart over time (daily/weekly/monthly)
-- **Campaign Performance** — bar chart by campaign name
-- **ROI Trends** — area chart of ROI % over time
-
-### Gauges
-- **ROAS** — circular progress indicator (target: 3:1)
-- **ROI %** — circular progress indicator (target: 100%)
-- **Budget Utilization** — circular progress indicator (% of monthly budget spent)
-
-### Agent Activity
-- View latest agent run results
-- Last Slack summary preview
-- "Run Agent Now" button for manual triggers
-
-## Creating Campaigns & Entering Metrics
-
-### Via Dashboard UI
-1. Go to Analytics → Add Campaign
-2. Enter campaign name and select platform (Manual / Google Ads / Meta Ads)
-3. Click "Add Metric" to enter daily spend/revenue
-4. Dashboard updates automatically
-
-### Via API (curl example)
-```bash
-# Create a campaign
-curl -X POST http://localhost:5000/api/campaigns \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Q4 Social","platform":"manual","status":"active"}'
-
-# Add a metric
-curl -X POST http://localhost:5000/api/metrics \
-  -H "Content-Type: application/json" \
-  -d '{"campaign_id":1,"date":"2026-09-23","spend":500,"revenue":2000,"conversions":10}'
-```
-
-## Agent System
-
-### How It Works
-1. **Scheduled**: Node backend triggers the Python agent service daily (default: 7 AM)
-2. **Runs**: 4 CrewAI agents run in parallel:
-   - News Researcher: Finds industry trends (marketing, tech, ads)
-   - Competitor Analyst: Searches for competitor news
-   - Performance Analyzer: Analyzes your metrics, flags anomalies
-   - Slack Reporter: Compiles summaries and posts to Slack
-3. **Results**: News items saved to DB, Slack message posted, run logged
-
-### Manual Trigger
-```bash
-# From the dashboard: click "Run Agent Now"
-# OR via API:
-curl -X POST http://localhost:5000/api/agent/run
-
-# OR standalone (Python):
-cd agents
-python main.py --once
-```
-
-## Google Ads & Meta Ads Integration
-
-Currently, manual entry is the primary input method. When you're ready to connect live APIs:
-
-### Google Ads Setup
-1. Create a developer account at ads.google.com/dev
-2. Request a developer token (requires business verification)
-3. Create an OAuth app at cloud.google.com/console
-4. Set `GOOGLE_ADS_*` env vars
-5. Routes are ready at `backend/routes/integrations/googleAds.js`
-
-### Meta Ads Setup
-1. Create a Meta Business Account
-2. Create a Marketing API app at developers.facebook.com
-3. Generate an access token
-4. Set `META_ACCESS_TOKEN` env var
-5. Routes are ready at `backend/routes/integrations/metaAds.js`
-
-See `backend/routes/integrations/README.md` for detailed OAuth flow docs (to be added).
-
-## Environment & Dependencies
-
-### Node Packages
-- `express` — REST API server
-- `pg` — PostgreSQL driver
-- `node-cron` — Scheduled jobs
-- `axios` — HTTP client
-- `cors`, `dotenv` — Middleware & config
-
-### Python Packages
-- `crewai` — Multi-agent orchestration
-- `fastapi`, `uvicorn` — REST API
-- `psycopg2` — PostgreSQL driver
-- `requests`, `anthropic` — API clients
-- `python-dotenv` — Environment config
-
-### React Packages
-- `react`, `react-dom` — UI framework
-- `recharts` — Data visualization (charts & gauges)
-- `axios` — HTTP client
-- `react-router-dom` — Routing
-- `tailwindcss` (or custom CSS) — Dark theme styling
-
-## Troubleshooting
-
-**"Database connection failed"**
-- Confirm PostgreSQL is running: `psql -U postgres`
-- Check `.env` DB credentials
-- Ensure `marketing_dashboard` database exists
-
-**"ANTHROPIC_API_KEY not set"**
-- Get a key from https://console.anthropic.com
-- Add it to `.env`: `ANTHROPIC_API_KEY=sk-ant-...`
-
-**"Agent service not responding"**
-- Confirm Python service is running: `curl http://localhost:5001/health`
-- Check Python error logs in terminal
-
-**"Slack message not posting"**
-- Verify `SLACK_WEBHOOK_URL` in `.env`
-- Test with curl: `curl -X POST <WEBHOOK_URL> -d '{"text":"test"}'`
-
-## File Structure
+## Project layout
 
 ```
 marketing-dashboard/
-├── backend/              # Node/Express API
-│   ├── server.js         # Main server entry
-│   ├── package.json
-│   ├── db/
-│   │   ├── connection.js # Postgres pool
-│   │   ├── schema.sql    # Database schema
-│   │   └── init.js       # Schema initializer
-│   ├── routes/
-│   │   ├── campaigns.js
-│   │   ├── metrics.js
-│   │   ├── news.js
-│   │   ├── agent.js
-│   │   ├── slack.js
-│   │   └── integrations/
-│   │       ├── googleAds.js
-│   │       └── metaAds.js
-│   └── utils/            # Helper functions
-├── frontend/             # React dashboard
-│   ├── src/
-│   │   ├── index.js
-│   │   ├── App.js
-│   │   ├── components/   # Reusable UI components
-│   │   ├── pages/        # Dashboard pages
-│   │   └── utils/        # API client, helpers
-│   ├── package.json
-│   └── public/
-├── agents/               # Python CrewAI service
-│   ├── main.py          # FastAPI server
-│   ├── crew.py          # CrewAI definition
-│   ├── tools/           # Custom tools
-│   │   ├── claude_web_search.py
-│   │   ├── db_tools.py
-│   │   └── slack_tool.py
-│   ├── requirements.txt
-│   └── config.py        # Agent config
+├── backend/
+│   ├── server.js            API server + sync scheduler
+│   ├── db/index.js          SQLite schema (data/ads.db)
+│   ├── integrations/        googleAds.js, metaAds.js, linkedinAds.js
+│   ├── services/            sync.js (pull + save), store.js (upserts)
+│   ├── routes/              analytics.js (summary, trend, campaigns), integrations.js
+│   ├── scripts/seed.js      sample data
+│   └── test/
+├── frontend/                React + Vite
+│   └── src/                 App.jsx, pages/, components/, lib.js, App.css
+├── data/ads.db              your data (created on first run)
 ├── .env.example
-├── README.md
-└── START.bat            # Quick launcher
-
+└── START.bat
 ```
 
-## Next Steps
+## API
 
-1. ✅ Set up PostgreSQL database
-2. ✅ Configure `.env` file
-3. ✅ Start backend + frontend + agent service
-4. 🔄 Add your first campaign & metrics via UI
-5. ▶️ Click "Run Agent Now" to see agents in action
-6. 📲 Check Slack channel for summary
-7. 🔌 When ready: wire up Google Ads & Meta Ads APIs
+All read endpoints accept `start` and `end` (`YYYY-MM-DD`) and default to the last 30 days.
 
-## Support
+- `GET /api/summary`: KPI totals, change vs. the previous period, and daily series
+- `GET /api/trend?metric=spend|revenue|conversions|clicks&granularity=day|week|month`: values per bucket per platform
+- `GET /api/campaigns?platform=&q=&sort=&order=`: campaigns with aggregated metrics
+- `GET /api/integrations`: per-platform status
+- `POST /api/integrations/:platform/sync`: sync one platform now (`google_ads`, `meta_ads`, `linkedin_ads`)
 
-For issues or questions:
-- Check the Troubleshooting section above
-- Review logs in the running terminals
-- Check `.env` and database connection
-- Ensure all services are running (3 terminals)
+## Troubleshooting
 
-## License
-
-Private — built for your marketing ops.
+- **Dashboard says "Could not load data"**: the API isn't running. Use `npm run dev`, not just the frontend.
+- **Sync fails with HTTP 401/403**: the token is expired or missing a permission. LinkedIn tokens expire after 60 days.
+- **Google says the developer token is not approved**: test-access tokens only work with test accounts. Apply for Basic access in the API Center.
